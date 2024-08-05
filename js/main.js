@@ -1,24 +1,50 @@
-import '../css/style.css'
-import javascriptLogo from '../javascript.svg'
-import viteLogo from '/vite.svg'
-import { setupCounter } from './counter.js'
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
-document.querySelector('#app').innerHTML = `
-  <div>
-    <a href="https://vitejs.dev" target="_blank">
-      <img src="${viteLogo}" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript" target="_blank">
-      <img src="${javascriptLogo}" class="logo vanilla" alt="JavaScript logo" />
-    </a>
-    <h1>Hello Vite!</h1>
-    <div class="card">
-      <button id="counter" type="button"></button>
-    </div>
-    <p class="read-the-docs">
-      Click on the Vite logo to learn more
-    </p>
-  </div>
-`
+class Profile {
+  constructor() {
+    this.downloadButton = document.getElementById('download');
+    this.downloadButton.addEventListener('click', this.exportAsPdf);
 
-setupCounter(document.querySelector('#counter'))
+    this.profileBlocks = document.getElementsByClassName('block');
+    for (const profileBlock of this.profileBlocks) {
+      profileBlock.addEventListener('click', this.createRipple);
+    }
+  }
+
+  async exportAsPdf() {
+    await html2canvas(document.getElementById('profile'), {
+        useCORS: true,
+        allowTaint: true,
+        scale: 2.5
+    }).then((canvas) => {
+        this.doc = new jsPDF('p', 'pt');
+        const imgData = canvas.toDataURL('image/png');
+        const imgProps= this.doc.getImageProperties(imgData);
+        const pdfWidth = this.doc.internal.pageSize.getWidth();
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width; 
+        this.doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    });
+
+    this.doc.save('CV.pdf');
+  }
+
+  createRipple(event) {
+    const circle = document.createElement('div');
+    const blockWidth = this.offsetWidth;
+    const blockHeight = this.offsetHeight;
+    const circleDiameter = Math.max(blockWidth, blockHeight);
+    const rect = event.currentTarget.getBoundingClientRect();
+    circle.style.width = `${circleDiameter}px`;
+    circle.style.height = `${circleDiameter}px`;
+    circle.style.left = `${event.clientX - rect.left - circleDiameter / 2}px`;
+    circle.style.top = `${event.clientY - rect.top - circleDiameter / 2}px`;
+    circle.classList.add('ripple');
+    this.appendChild(circle);
+    setTimeout(() => {
+      circle.remove();
+    }, 1000);
+  }
+}
+
+new Profile();
